@@ -1,35 +1,118 @@
-// Import the Express module
 const express = require('express');
 const app = express();
-const port = 3000;
+
+// IMPORTANT for Render
+const port = process.env.PORT || 3000;
 
 app.use(express.json());
 
-// Define a route for GET requests
-app.get('/users', (req, res) => {
-    res.json({ message: 'Returning list of users' });
-});
+// In-memory storage (temporary)
+let users = [];
 
-// Define a route for POST requests
+/*
+========================
+CREATE USER (POST)
+========================
+*/
 app.post('/users', (req, res) => {
-    const newUser = req.body;
-    res.json({ message: 'User created', user: newUser });
+    const { name, age, email } = req.body;
+
+    // Basic validation
+    if (!name || !age) {
+        return res.status(400).json({
+            message: "Name and age are required"
+        });
+    }
+
+    const newUser = {
+        id: Date.now(),
+        name,
+        age,
+        email
+    };
+
+    users.push(newUser);
+
+    res.status(201).json({
+        message: "User added",
+        data: newUser
+    });
 });
 
-// Define a route for PUT requests
+/*
+========================
+GET ALL USERS (READ)
+========================
+*/
+app.get('/users', (req, res) => {
+    res.json(users);
+});
+
+/*
+========================
+UPDATE USER (PUT)
+========================
+*/
 app.put('/users/:id', (req, res) => {
-    const userId = req.params.id;
-    const updatedUser = req.body;
-    res.json({ message: `User with ID ${userId} updated`, updatedUser });
+    const id = parseInt(req.params.id);
+    const { name, age, email } = req.body;
+
+    const user = users.find(u => u.id === id);
+
+    if (!user) {
+        return res.status(404).json({
+            message: "User not found"
+        });
+    }
+
+    if (name) user.name = name;
+    if (age) user.age = age;
+    if (email) user.email = email;
+
+    res.json({
+        message: "User updated",
+        data: user
+    });
 });
 
-// Define a route for DELETE requests
+/*
+========================
+DELETE USER
+========================
+*/
 app.delete('/users/:id', (req, res) => {
-    const userId = req.params.id;
-    res.json({ message: `User with ID ${userId} deleted` });
+    const id = parseInt(req.params.id);
+
+    const index = users.findIndex(u => u.id === id);
+
+    if (index === -1) {
+        return res.status(404).json({
+            message: "User not found"
+        });
+    }
+
+    const deletedUser = users.splice(index, 1);
+
+    res.json({
+        message: "User deleted",
+        data: deletedUser
+    });
 });
 
-// Start the server
+/*
+========================
+ROOT CHECK
+========================
+*/
+app.get('/', (req, res) => {
+    res.send('API is running');
+});
+
+/*
+========================
+START SERVER
+========================
+*/
 app.listen(port, () => {
-    console.log(`Server is running on http://localhost:${port}`);
+    console.log(`Server running on port ${port}`);
 });
